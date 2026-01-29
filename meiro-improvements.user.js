@@ -78,7 +78,15 @@
             focusInterval: 50,
             timeout: 2000
         },
-        
+
+        // Autosave configuration
+        autosave: {
+            urlPattern: /\/channels\/emails\/campaigns/,
+            interval: 90,  // seconds
+            saveButtonSelector: 'button[data-testid="submit-button"]',
+            storageKey: 'meiro-autosave-enabled',
+        },
+
         // Resource management
         resources: {
             cleanupOnUnload: true,
