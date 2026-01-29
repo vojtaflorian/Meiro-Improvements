@@ -2614,6 +2614,69 @@
     }
 
     /**
+     * Wait for iframe to appear in DOM, then start resize interval
+     */
+    waitForIframe() {
+      try {
+        const iframe = document.getElementById(this.config.iframeId);
+        if (iframe) {
+          this.onIframeFound();
+          return;
+        }
+
+        this.logger.info('EditorLayoutManager', 'Iframe not found, waiting...');
+
+        const observer = new MutationObserver(() => {
+          try {
+            const iframe = document.getElementById(this.config.iframeId);
+            if (iframe) {
+              observer.disconnect();
+              this.onIframeFound();
+            }
+          } catch (error) {
+            this.logger.error('EditorLayoutManager',
+              'Error in iframe observer', error);
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        this.iframeObserverId = this.resourceManager.registerObserver(
+          observer,
+          'Editor layout iframe observer'
+        );
+
+        this.iframeTimeoutId = this.resourceManager.registerTimeout(() => {
+          const iframe = document.getElementById(this.config.iframeId);
+          if (!iframe) {
+            observer.disconnect();
+            this.logger.warn('EditorLayoutManager',
+              'Iframe not found after 30s, giving up');
+          }
+        }, 30000, 'Editor layout iframe timeout');
+
+      } catch (error) {
+        this.logger.error('EditorLayoutManager',
+          'Error waiting for iframe', error);
+      }
+    }
+
+    /**
+     * Called when iframe is found — starts resize interval
+     */
+    onIframeFound() {
+      this.logger.info('EditorLayoutManager', 'Iframe found, starting resize interval');
+
+      this.resizeIframe();
+
+      this.resizeIntervalId = this.resourceManager.registerInterval(
+        () => this.resizeIframe(),
+        this.config.resizeInterval,
+        'Editor layout iframe resize'
+      );
+    }
+
+    /**
      * Initialize - entry point called by ApplicationManager
      */
     initialize() {
