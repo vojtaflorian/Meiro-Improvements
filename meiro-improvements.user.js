@@ -2178,6 +2178,73 @@
         }
 
         /**
+         * Wait for Save button to appear in DOM, then set up UI
+         */
+        waitForSaveButton() {
+            try {
+                // Try immediately
+                this.saveButton = this.findSaveButton();
+                if (this.saveButton) {
+                    this.onSaveButtonFound();
+                    return;
+                }
+
+                this.logger.info('AutosaveManager', 'Save button not found, waiting...');
+
+                // Observe DOM for button appearance
+                const observer = new MutationObserver((mutations) => {
+                    try {
+                        this.saveButton = this.findSaveButton();
+                        if (this.saveButton) {
+                            observer.disconnect();
+                            this.onSaveButtonFound();
+                        }
+                    } catch (error) {
+                        this.logger.error('AutosaveManager',
+                            'Error in save button observer', error);
+                    }
+                });
+
+                observer.observe(document.body, { childList: true, subtree: true });
+
+                this.resourceManager.registerObserver(
+                    observer,
+                    'Autosave save button observer'
+                );
+
+                // Timeout after 30s
+                this.resourceManager.registerTimeout(() => {
+                    if (!this.saveButton) {
+                        observer.disconnect();
+                        this.logger.warn('AutosaveManager',
+                            'Save button not found after 30s, giving up');
+                    }
+                }, 30000, 'Autosave save button timeout');
+
+            } catch (error) {
+                this.logger.error('AutosaveManager',
+                    'Error waiting for save button', error);
+            }
+        }
+
+        /**
+         * Called when Save button is found — sets up UI and restores state
+         */
+        onSaveButtonFound() {
+            this.logger.info('AutosaveManager', 'Save button found, setting up UI');
+
+            this.createUI();
+
+            // Restore saved state
+            this.isEnabled = this.loadState();
+            if (this.isEnabled) {
+                this.toggleElement.classList.add('active');
+                this.startCountdown();
+                this.logger.info('AutosaveManager', 'Restored enabled state from storage');
+            }
+        }
+
+        /**
          * Initialize - entry point called by ApplicationManager
          */
         initialize() {
