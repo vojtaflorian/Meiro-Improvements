@@ -1965,6 +1965,107 @@
         }
 
         /**
+         * Inject autosave-specific CSS styles
+         */
+        injectStyles() {
+            try {
+                const style = document.createElement('style');
+                style.textContent = `
+                    .meiro-autosave-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-right: 8px;
+                    }
+                    .meiro-autosave-label {
+                        font-size: 13px;
+                        color: #6b7280;
+                        user-select: none;
+                    }
+                    .meiro-autosave-toggle {
+                        position: relative;
+                        width: 36px;
+                        height: 20px;
+                        background: #d1d5db;
+                        border-radius: 10px;
+                        cursor: pointer;
+                        transition: background 0.2s ease;
+                    }
+                    .meiro-autosave-toggle.active {
+                        background: #22c55e;
+                    }
+                    .meiro-autosave-toggle::after {
+                        content: '';
+                        position: absolute;
+                        top: 2px;
+                        left: 2px;
+                        width: 16px;
+                        height: 16px;
+                        background: white;
+                        border-radius: 50%;
+                        transition: transform 0.2s ease;
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                    }
+                    .meiro-autosave-toggle.active::after {
+                        transform: translateX(16px);
+                    }
+                    .meiro-autosave-countdown {
+                        font-size: 12px;
+                        font-variant-numeric: tabular-nums;
+                        color: #9ca3af;
+                        min-width: 28px;
+                    }
+                    .meiro-autosave-countdown.warning {
+                        color: #ef4444;
+                        font-weight: 600;
+                    }
+                `;
+                document.head.appendChild(style);
+                this.logger.debug('AutosaveManager', 'Styles injected');
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error injecting styles', error);
+            }
+        }
+
+        /**
+         * Create and insert the autosave UI elements
+         */
+        createUI() {
+            try {
+                this.injectStyles();
+
+                this.container = document.createElement('div');
+                this.container.className = 'meiro-autosave-container';
+
+                // Label
+                const label = document.createElement('span');
+                label.className = 'meiro-autosave-label';
+                label.textContent = 'Autosave';
+
+                // Toggle
+                this.toggleElement = document.createElement('div');
+                this.toggleElement.className = 'meiro-autosave-toggle';
+                this.toggleElement.addEventListener('click', () => this.toggle());
+
+                // Countdown
+                this.countdownElement = document.createElement('span');
+                this.countdownElement.className = 'meiro-autosave-countdown';
+                this.countdownElement.style.display = 'none';
+
+                this.container.appendChild(label);
+                this.container.appendChild(this.toggleElement);
+                this.container.appendChild(this.countdownElement);
+
+                // Insert before Save button
+                this.saveButton.parentNode.insertBefore(this.container, this.saveButton);
+
+                this.logger.info('AutosaveManager', 'UI created and inserted');
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error creating UI', error);
+            }
+        }
+
+        /**
          * Initialize - entry point called by ApplicationManager
          */
         initialize() {
