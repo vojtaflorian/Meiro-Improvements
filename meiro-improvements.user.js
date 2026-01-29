@@ -2307,7 +2307,8 @@
                 formAutoFiller: null,
                 contentSizeMonitor: null,
                 styleManager: null,
-                deleteButtonFocusManager: null
+                deleteButtonFocusManager: null,
+                autosaveManager: null
             };
             
             this.isInitialized = false;
@@ -2386,10 +2387,22 @@
                     );
                     this.modules.deleteButtonFocusManager.initialize();
                 } catch (error) {
-                    this.logger.error('ApplicationManager', 
+                    this.logger.error('ApplicationManager',
                         'Failed to initialize Delete Button Focus Manager', error);
                 }
-                
+
+                // Initialize Autosave Manager
+                try {
+                    this.modules.autosaveManager = new AutosaveManager(
+                        this.logger,
+                        this.resourceManager
+                    );
+                    this.modules.autosaveManager.initialize();
+                } catch (error) {
+                    this.logger.error('ApplicationManager',
+                        'Failed to initialize Autosave Manager', error);
+                }
+
                 const duration = Date.now() - startTime;
                 
                 this.logger.info('ApplicationManager', 
