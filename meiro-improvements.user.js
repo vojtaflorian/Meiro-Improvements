@@ -2066,6 +2066,118 @@
         }
 
         /**
+         * Start the countdown timer
+         */
+        startCountdown() {
+            this.remainingSeconds = this.config.interval;
+            this.updateCountdownDisplay();
+            this.countdownElement.style.display = '';
+
+            this.countdownIntervalId = this.resourceManager.registerInterval(
+                () => this.tick(),
+                1000,
+                'Autosave countdown'
+            );
+
+            this.logger.info('AutosaveManager',
+                `Countdown started: ${this.config.interval}s`);
+        }
+
+        /**
+         * Stop the countdown timer
+         */
+        stopCountdown() {
+            if (this.countdownIntervalId) {
+                this.resourceManager.clearInterval(this.countdownIntervalId);
+                this.countdownIntervalId = null;
+            }
+
+            this.remainingSeconds = this.config.interval;
+
+            if (this.countdownElement) {
+                this.countdownElement.style.display = 'none';
+                this.countdownElement.classList.remove('warning');
+            }
+
+            this.logger.debug('AutosaveManager', 'Countdown stopped');
+        }
+
+        /**
+         * Handle one countdown tick (every second)
+         */
+        tick() {
+            try {
+                this.remainingSeconds--;
+
+                if (this.remainingSeconds <= 0) {
+                    this.performSave();
+                    this.remainingSeconds = this.config.interval;
+                }
+
+                this.updateCountdownDisplay();
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error in tick', error);
+            }
+        }
+
+        /**
+         * Update the countdown display text and warning state
+         */
+        updateCountdownDisplay() {
+            if (!this.countdownElement) return;
+
+            this.countdownElement.textContent = this.formatTime(this.remainingSeconds);
+
+            if (this.remainingSeconds <= 10) {
+                this.countdownElement.classList.add('warning');
+            } else {
+                this.countdownElement.classList.remove('warning');
+            }
+        }
+
+        /**
+         * Attempt to click the Save button
+         */
+        performSave() {
+            try {
+                const button = this.findSaveButton();
+
+                if (!button) {
+                    this.logger.warn('AutosaveManager', 'Save button not found, skipping');
+                    return;
+                }
+
+                if (button.disabled) {
+                    this.logger.info('AutosaveManager', 'Save button disabled, skipping');
+                    return;
+                }
+
+                button.click();
+                this.logger.info('AutosaveManager', 'Auto-save triggered');
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error performing save', error);
+            }
+        }
+
+        /**
+         * Toggle autosave on/off
+         */
+        toggle() {
+            this.isEnabled = !this.isEnabled;
+            this.saveState(this.isEnabled);
+
+            if (this.isEnabled) {
+                this.toggleElement.classList.add('active');
+                this.startCountdown();
+                this.logger.info('AutosaveManager', 'Autosave enabled');
+            } else {
+                this.toggleElement.classList.remove('active');
+                this.stopCountdown();
+                this.logger.info('AutosaveManager', 'Autosave disabled');
+            }
+        }
+
+        /**
          * Initialize - entry point called by ApplicationManager
          */
         initialize() {
