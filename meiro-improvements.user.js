@@ -86,6 +86,18 @@
       storageKey: "meiro-autosave-enabled",
     },
 
+    // Editor layout configuration
+    editorLayout: {
+      urlPatterns: [
+        /\/channels\/emails\/campaigns/,
+        /\/channels\/emails\/templates/,
+      ],
+      resizeInterval: 1000,
+      iframeId: "easy-email-pro-iframe",
+      heightReserve: 50,
+      minHeight: 800,
+    },
+
     // Resource management
     resources: {
       cleanupOnUnload: true,
