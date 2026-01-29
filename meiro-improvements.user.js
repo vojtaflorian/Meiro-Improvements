@@ -2755,6 +2755,7 @@
         styleManager: null,
         deleteButtonFocusManager: null,
         autosaveManager: null,
+        editorLayoutManager: null,
       };
 
       this.isInitialized = false;
@@ -2865,6 +2866,21 @@
           this.logger.error(
             "ApplicationManager",
             "Failed to initialize Autosave Manager",
+            error,
+          );
+        }
+
+        // Initialize Editor Layout Manager
+        try {
+          this.modules.editorLayoutManager = new EditorLayoutManager(
+            this.logger,
+            this.resourceManager,
+          );
+          this.modules.editorLayoutManager.initialize();
+        } catch (error) {
+          this.logger.error(
+            "ApplicationManager",
+            "Failed to initialize Editor Layout Manager",
             error,
           );
         }
