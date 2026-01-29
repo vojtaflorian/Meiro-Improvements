@@ -9,6 +9,7 @@ Production-ready Tampermonkey/Greasemonkey userscript that enhances the Meiro.io
 - **Content size monitor** - Displays HTML content size in real-time
 - **UI enhancements** - Responsive layout improvements and wider content areas
 - **Delete button focus** - Auto-focuses delete button in confirmation modals (press Enter to confirm)
+- **Autosave** - Automatic saving in campaign editor with configurable interval (90s default), toggle switch and countdown timer
 
 ## Installation
 
@@ -31,6 +32,9 @@ const CONFIG = {
     form: {
         profileId: '00059461-1b48-f552-3d8c-9f0422f5aef8' // Change to your Profile ID
     },
+    autosave: {
+        interval: 90 // Save interval in seconds (default: 90)
+    },
     // ... more options
 }
 ```
@@ -52,6 +56,13 @@ const CONFIG = {
 - Monitors Ace Editor content
 - Displays size in KB (bottom-right corner)
 - Updates every 3 seconds
+
+### Autosave (Campaigns only)
+- Automatically saves campaign editor content at configurable intervals
+- Default interval: 90 seconds (`CONFIG.autosave.interval`)
+- Toggle switch in editor UI to enable/disable
+- Countdown timer shows time until next save
+- Toggle state persisted in localStorage
 
 ### UI improvements
 - Wider content areas for better workspace
