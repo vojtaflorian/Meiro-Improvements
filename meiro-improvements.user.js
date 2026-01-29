@@ -2590,6 +2590,11 @@
         const body = iframe.contentWindow.document.body;
         const html = iframe.contentWindow.document.documentElement;
 
+        if (!body) {
+          this.logger.debug('EditorLayoutManager', 'Iframe body not ready');
+          return;
+        }
+
         const height = Math.max(
           body.scrollHeight, body.offsetHeight,
           html.clientHeight, html.scrollHeight, html.offsetHeight
@@ -2631,6 +2636,11 @@
             const iframe = document.getElementById(this.config.iframeId);
             if (iframe) {
               observer.disconnect();
+              if (this.iframeTimeoutId) {
+                this.resourceManager.clearTimeout(this.iframeTimeoutId);
+                this.iframeTimeoutId = null;
+              }
+              this.iframeObserverId = null;
               this.onIframeFound();
             }
           } catch (error) {
@@ -2649,7 +2659,11 @@
         this.iframeTimeoutId = this.resourceManager.registerTimeout(() => {
           const iframe = document.getElementById(this.config.iframeId);
           if (!iframe) {
-            observer.disconnect();
+            if (this.iframeObserverId) {
+              this.resourceManager.disconnectObserver(this.iframeObserverId);
+              this.iframeObserverId = null;
+            }
+            this.iframeTimeoutId = null;
             this.logger.warn('EditorLayoutManager',
               'Iframe not found after 30s, giving up');
           }
@@ -2665,6 +2679,7 @@
      * Called when iframe is found — starts resize interval
      */
     onIframeFound() {
+      if (this.resizeIntervalId) return;
       this.logger.info('EditorLayoutManager', 'Iframe found, starting resize interval');
 
       this.resizeIframe();
