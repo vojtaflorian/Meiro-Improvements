@@ -1877,6 +1877,139 @@
     }
 
     //===================================================================================
+    // AUTOSAVE MANAGER
+    //===================================================================================
+
+    /**
+     * Automatically saves campaign content at configurable intervals
+     * Provides a toggle switch and countdown timer next to the Save button
+     */
+    class AutosaveManager {
+        constructor(logger, resourceManager) {
+            this.logger = logger;
+            this.resourceManager = resourceManager;
+            this.config = CONFIG.autosave;
+            this.isInitialized = false;
+            this.isEnabled = false;
+            this.countdownIntervalId = null;
+            this.remainingSeconds = this.config.interval;
+            this.saveButton = null;
+
+            // UI elements
+            this.container = null;
+            this.toggleElement = null;
+            this.countdownElement = null;
+
+            this.logger.info('AutosaveManager', 'Autosave manager initialized');
+        }
+
+        /**
+         * Check if current page is a campaign page
+         * @returns {boolean}
+         */
+        isCampaignPage() {
+            return this.config.urlPattern.test(window.location.pathname);
+        }
+
+        /**
+         * Load enabled state from localStorage
+         * @returns {boolean}
+         */
+        loadState() {
+            try {
+                return localStorage.getItem(this.config.storageKey) === 'true';
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error loading state', error);
+                return false;
+            }
+        }
+
+        /**
+         * Save enabled state to localStorage
+         * @param {boolean} enabled
+         */
+        saveState(enabled) {
+            try {
+                localStorage.setItem(this.config.storageKey, String(enabled));
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error saving state', error);
+            }
+        }
+
+        /**
+         * Format seconds as m:ss
+         * @param {number} seconds
+         * @returns {string}
+         */
+        formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${String(s).padStart(2, '0')}`;
+        }
+
+        /**
+         * Find the Save button in the DOM
+         * @returns {HTMLElement|null}
+         */
+        findSaveButton() {
+            try {
+                const button = document.querySelector(this.config.saveButtonSelector);
+                if (button) {
+                    this.logger.debug('AutosaveManager', 'Save button found');
+                }
+                return button;
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error finding save button', error);
+                return null;
+            }
+        }
+
+        /**
+         * Initialize - entry point called by ApplicationManager
+         */
+        initialize() {
+            try {
+                if (!this.isCampaignPage()) {
+                    this.logger.info('AutosaveManager', 'Not on campaign page, skipping');
+                    return;
+                }
+
+                if (this.isInitialized) {
+                    this.logger.warn('AutosaveManager', 'Already initialized');
+                    return;
+                }
+
+                this.logger.info('AutosaveManager', 'Starting initialization');
+                this.isInitialized = true;
+
+                this.waitForSaveButton();
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error during initialization', error);
+                this.isInitialized = false;
+            }
+        }
+
+        /**
+         * Stop autosave manager and cleanup
+         */
+        stop() {
+            try {
+                this.stopCountdown();
+
+                if (this.container && this.container.parentNode) {
+                    this.container.parentNode.removeChild(this.container);
+                    this.container = null;
+                }
+
+                this.isInitialized = false;
+                this.logger.info('AutosaveManager', 'Autosave manager stopped');
+            } catch (error) {
+                this.logger.error('AutosaveManager', 'Error stopping', error);
+            }
+        }
+    }
+
+    //===================================================================================
     // APPLICATION MANAGER
     //===================================================================================
     
