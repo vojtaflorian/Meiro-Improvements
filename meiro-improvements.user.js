@@ -2538,6 +2538,40 @@
     }
 
     /**
+     * Inject CSS overrides to unlock container heights
+     */
+    injectStyles() {
+      try {
+        this.styleElement = document.createElement('style');
+        this.styleElement.textContent = `
+          /* Editor layout - unlock container heights */
+          .wzW5j section.arco-layout {
+            height: auto !important;
+            min-height: ${this.config.minHeight}px !important;
+          }
+
+          .wzW5j section.arco-layout > aside + div {
+            height: auto !important;
+            flex: 1 1 auto !important;
+          }
+
+          .easy-email-pro-editor-tabs + div {
+            height: auto !important;
+          }
+
+          .easy-email-pro-editor-tabs + div > div {
+            height: auto !important;
+            overflow: visible !important;
+          }
+        `;
+        document.head.appendChild(this.styleElement);
+        this.logger.info('EditorLayoutManager', 'CSS overrides injected');
+      } catch (error) {
+        this.logger.error('EditorLayoutManager', 'Error injecting styles', error);
+      }
+    }
+
+    /**
      * Initialize - entry point called by ApplicationManager
      */
     initialize() {
