@@ -1894,6 +1894,8 @@
             this.countdownIntervalId = null;
             this.remainingSeconds = this.config.interval;
             this.saveButton = null;
+            this.buttonObserverId = null;
+            this.buttonTimeoutId = null;
 
             // UI elements
             this.container = null;
@@ -1969,8 +1971,8 @@
          */
         injectStyles() {
             try {
-                const style = document.createElement('style');
-                style.textContent = `
+                this.styleElement = document.createElement('style');
+                this.styleElement.textContent = `
                     .meiro-autosave-container {
                         display: flex;
                         align-items: center;
@@ -2020,7 +2022,7 @@
                         font-weight: 600;
                     }
                 `;
-                document.head.appendChild(style);
+                document.head.appendChild(this.styleElement);
                 this.logger.debug('AutosaveManager', 'Styles injected');
             } catch (error) {
                 this.logger.error('AutosaveManager', 'Error injecting styles', error);
@@ -2069,6 +2071,9 @@
          * Start the countdown timer
          */
         startCountdown() {
+            if (this.countdownIntervalId) {
+                this.stopCountdown();
+            }
             this.remainingSeconds = this.config.interval;
             this.updateCountdownDisplay();
             this.countdownElement.style.display = '';
@@ -2207,13 +2212,13 @@
 
                 observer.observe(document.body, { childList: true, subtree: true });
 
-                this.resourceManager.registerObserver(
+                this.buttonObserverId = this.resourceManager.registerObserver(
                     observer,
                     'Autosave save button observer'
                 );
 
                 // Timeout after 30s
-                this.resourceManager.registerTimeout(() => {
+                this.buttonTimeoutId = this.resourceManager.registerTimeout(() => {
                     if (!this.saveButton) {
                         observer.disconnect();
                         this.logger.warn('AutosaveManager',
@@ -2275,6 +2280,20 @@
         stop() {
             try {
                 this.stopCountdown();
+
+                if (this.buttonObserverId) {
+                    this.resourceManager.disconnectObserver(this.buttonObserverId);
+                    this.buttonObserverId = null;
+                }
+                if (this.buttonTimeoutId) {
+                    this.resourceManager.clearTimeout(this.buttonTimeoutId);
+                    this.buttonTimeoutId = null;
+                }
+
+                if (this.styleElement && this.styleElement.parentNode) {
+                    this.styleElement.parentNode.removeChild(this.styleElement);
+                    this.styleElement = null;
+                }
 
                 if (this.container && this.container.parentNode) {
                     this.container.parentNode.removeChild(this.container);
@@ -2543,7 +2562,7 @@
         // Expose app instance globally for debugging
         window.MeiroBetterWorkflow = {
             app: app,
-            version: '2025-09-29',
+            version: '1.2.0',
             config: CONFIG
         };
         
