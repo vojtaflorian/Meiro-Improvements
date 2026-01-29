@@ -2506,6 +2506,97 @@
   }
 
   //===================================================================================
+  // EDITOR LAYOUT MANAGER
+  //===================================================================================
+
+  /**
+   * Removes inner scrolling from campaign/template editor by unlocking
+   * CSS heights and dynamically resizing the iframe to match content
+   */
+  class EditorLayoutManager {
+    constructor(logger, resourceManager) {
+      this.logger = logger;
+      this.resourceManager = resourceManager;
+      this.config = CONFIG.editorLayout;
+      this.isInitialized = false;
+      this.styleElement = null;
+      this.resizeIntervalId = null;
+      this.iframeObserverId = null;
+      this.iframeTimeoutId = null;
+
+      this.logger.info('EditorLayoutManager', 'Editor layout manager initialized');
+    }
+
+    /**
+     * Check if current page matches any configured URL pattern
+     * @returns {boolean}
+     */
+    isEditorPage() {
+      return this.config.urlPatterns.some(pattern =>
+        pattern.test(window.location.pathname)
+      );
+    }
+
+    /**
+     * Initialize - entry point called by ApplicationManager
+     */
+    initialize() {
+      try {
+        if (!this.isEditorPage()) {
+          this.logger.info('EditorLayoutManager', 'Not on editor page, skipping');
+          return;
+        }
+
+        if (this.isInitialized) {
+          this.logger.warn('EditorLayoutManager', 'Already initialized');
+          return;
+        }
+
+        this.logger.info('EditorLayoutManager', 'Starting initialization');
+        this.isInitialized = true;
+
+        this.injectStyles();
+        this.waitForIframe();
+      } catch (error) {
+        this.logger.error('EditorLayoutManager', 'Error during initialization', error);
+        this.isInitialized = false;
+      }
+    }
+
+    /**
+     * Stop editor layout manager and cleanup
+     */
+    stop() {
+      try {
+        if (this.resizeIntervalId) {
+          this.resourceManager.clearInterval(this.resizeIntervalId);
+          this.resizeIntervalId = null;
+        }
+
+        if (this.iframeObserverId) {
+          this.resourceManager.disconnectObserver(this.iframeObserverId);
+          this.iframeObserverId = null;
+        }
+
+        if (this.iframeTimeoutId) {
+          this.resourceManager.clearTimeout(this.iframeTimeoutId);
+          this.iframeTimeoutId = null;
+        }
+
+        if (this.styleElement && this.styleElement.parentNode) {
+          this.styleElement.parentNode.removeChild(this.styleElement);
+          this.styleElement = null;
+        }
+
+        this.isInitialized = false;
+        this.logger.info('EditorLayoutManager', 'Editor layout manager stopped');
+      } catch (error) {
+        this.logger.error('EditorLayoutManager', 'Error stopping', error);
+      }
+    }
+  }
+
+  //===================================================================================
   // APPLICATION MANAGER
   //===================================================================================
 
