@@ -2572,6 +2572,48 @@
     }
 
     /**
+     * Resize iframe to match its content height
+     */
+    resizeIframe() {
+      try {
+        const iframe = document.getElementById(this.config.iframeId);
+        if (!iframe) {
+          this.logger.debug('EditorLayoutManager', 'Iframe not found, skipping resize');
+          return;
+        }
+
+        if (!iframe.contentWindow || !iframe.contentWindow.document) {
+          this.logger.debug('EditorLayoutManager', 'Iframe content not accessible');
+          return;
+        }
+
+        const body = iframe.contentWindow.document.body;
+        const html = iframe.contentWindow.document.documentElement;
+
+        const height = Math.max(
+          body.scrollHeight, body.offsetHeight,
+          html.clientHeight, html.scrollHeight, html.offsetHeight
+        );
+
+        const targetHeight = (height + this.config.heightReserve) + 'px';
+        iframe.style.height = targetHeight;
+
+        if (iframe.parentElement) {
+          iframe.parentElement.style.height = targetHeight;
+        }
+
+        this.logger.debug('EditorLayoutManager', `Iframe resized to ${height}px`);
+      } catch (error) {
+        if (error.name === 'SecurityError') {
+          this.logger.warn('EditorLayoutManager',
+            'Cannot access iframe content (cross-origin)');
+        } else {
+          this.logger.error('EditorLayoutManager', 'Error resizing iframe', error);
+        }
+      }
+    }
+
+    /**
      * Initialize - entry point called by ApplicationManager
      */
     initialize() {
