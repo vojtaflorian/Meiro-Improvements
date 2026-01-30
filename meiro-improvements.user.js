@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.6
+// @version      1.3.7
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2506,12 +2506,13 @@
   }
 
   //===================================================================================
-  // EDITOR LAYOUT MANAGER
+  // EDITOR LAYOUT MANAGER (WORKING CONSOLE REPLICA)
   //===================================================================================
 
   /**
    * Removes inner scrolling from campaign/template editor by unlocking
-   * CSS heights and dynamically resizing the iframe to match content
+   * CSS heights and dynamically resizing the iframe to match content.
+   * Sidebar uses sticky positioning synced to editor height.
    */
   class EditorLayoutManager {
     constructor(logger, resourceManager) {
@@ -2544,36 +2545,31 @@
       try {
         this.styleElement = document.createElement('style');
         this.styleElement.textContent = `
-          /* Editor layout - unlock container heights */
-          .wzW5j section.arco-layout {
-            height: auto !important;
-            min-height: ${this.config.minHeight}px !important;
-          }
-
-          .wzW5j section.arco-layout > aside + div {
-            height: auto !important;
-            flex: 1 1 auto !important;
-          }
-
-          .easy-email-pro-editor-tabs + div {
-            height: auto !important;
-          }
-
+          /* 1. Unlock containers (enable page-level scroll) */
+          .wzW5j section.arco-layout,
+          .wzW5j section.arco-layout > aside + div,
+          .easy-email-pro-editor-tabs + div,
           .easy-email-pro-editor-tabs + div > div {
             height: auto !important;
+            min-height: 100vh !important;
             overflow: visible !important;
           }
 
-          /* Sidebar sticky positioning */
-          aside.arco-layout-sider .arco-layout-sider-children {
-            position: sticky !important;
-            top: 20px !important;
-            z-index: 1000 !important;
-            width: 400px !important;
+          /* 2. Sidebar rail reset */
+          aside.arco-layout-sider {
+            height: auto !important;
             align-self: flex-start !important;
           }
 
-          /* Unlock overflow on sidebar internal scrollable elements */
+          /* 3. Sticky content (the "wagon" riding the rail) */
+          aside.arco-layout-sider .arco-layout-sider-children {
+            position: sticky !important;
+            width: 400px !important;
+            z-index: 1000 !important;
+            align-self: flex-start !important;
+          }
+
+          /* 4. Kill OverlayScrollbars inner scroll */
           aside.arco-layout-sider .arco-layout-sider-children .os-host,
           aside.arco-layout-sider .arco-layout-sider-children .os-viewport,
           aside.arco-layout-sider .arco-layout-sider-children .os-padding,
@@ -2592,7 +2588,7 @@
 
     /**
      * Fix sidebar for sticky positioning by unlocking parent overflow,
-     * removing conflicting inline styles, and fixing internal scroll elements
+     * syncing height to editor, and applying smart sticky logic
      */
     fixSidebar() {
       try {
@@ -2600,20 +2596,15 @@
         const sidebarContent = document.querySelector(
           'aside.arco-layout-sider .arco-layout-sider-children'
         );
-        // Find the editor wrapper (right column) to sync height
         const editorWrapper = document.querySelector('.wzW5j section.arco-layout > aside + div');
 
         if (!sidebar || !sidebarContent || !editorWrapper) return;
 
-        // 1. Walk up parent chain and unlock overflow (required for sticky)
+        // 1. Unlock overflow on all parents (required for sticky)
         let parent = sidebar.parentElement;
         while (parent && parent.tagName !== 'BODY') {
           const style = window.getComputedStyle(parent);
-          if (
-            style.overflow !== 'visible' ||
-            parent.classList.contains('arco-card-body') ||
-            parent.classList.contains('arco-layout')
-          ) {
+          if (style.overflow !== 'visible' || parent.classList.contains('arco-card-body')) {
             parent.style.setProperty('overflow', 'visible', 'important');
             parent.style.setProperty('height', 'auto', 'important');
             parent.style.setProperty('min-height', '100vh', 'important');
@@ -2627,20 +2618,14 @@
           sidebar.style.setProperty('min-height', rightHeight + 'px', 'important');
           sidebar.style.setProperty('height', '100%', 'important');
         }
-        sidebar.style.removeProperty('align-self');
 
-        // 3. Remove conflicting inline styles set by the application
-        sidebarContent.style.removeProperty('max-height');
-        sidebarContent.style.removeProperty('overflow-y');
-
-        // 4. Apply sticky positioning via inline styles
+        // 3. Apply sticky positioning
         sidebarContent.style.setProperty('position', 'sticky', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
         sidebarContent.style.setProperty('z-index', '1000', 'important');
-        // Always start at top of rail — never use flex-end (pushes content to bottom of rail)
         sidebarContent.style.setProperty('align-self', 'flex-start', 'important');
 
-        // Smart sticky: if menu taller than viewport, stick to bottom edge; otherwise top
+        // Smart sticky: tall menu sticks to bottom edge, short menu sticks to top
         const winHeight = window.innerHeight;
         const menuHeight = sidebarContent.offsetHeight;
         if (menuHeight > (winHeight - 40)) {
@@ -2651,14 +2636,16 @@
           sidebarContent.style.setProperty('bottom', 'auto', 'important');
         }
 
-        // 5. Fix internal scroll elements (.os-host has calc() height, .os-viewport has overflow-y: scroll)
+        // 4. Force unlock internal scroll elements
         const internals = sidebarContent.querySelectorAll(
           '.os-host, .os-viewport, .os-padding, .os-content'
         );
         internals.forEach(el => {
-          el.style.setProperty('height', 'auto', 'important');
-          el.style.setProperty('max-height', 'none', 'important');
-          el.style.setProperty('overflow', 'visible', 'important');
+          if (el.style.overflow !== 'visible') {
+            el.style.setProperty('height', 'auto', 'important');
+            el.style.setProperty('max-height', 'none', 'important');
+            el.style.setProperty('overflow', 'visible', 'important');
+          }
         });
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
@@ -2671,48 +2658,33 @@
     resizeIframe() {
       try {
         const iframe = document.getElementById(this.config.iframeId);
-        if (!iframe) {
-          this.logger.debug('EditorLayoutManager', 'Iframe not found, skipping resize');
-          return;
+        if (!iframe || !iframe.contentWindow) return;
+
+        try {
+          const body = iframe.contentWindow.document.body;
+          const html = iframe.contentWindow.document.documentElement;
+          if (!body) return;
+
+          const height = Math.max(
+            body.scrollHeight, body.offsetHeight,
+            html.clientHeight, html.scrollHeight, html.offsetHeight
+          );
+
+          // Only resize if height changed significantly (avoids unnecessary reflows)
+          const currentHeight = parseInt(iframe.style.height || '0', 10);
+          if (Math.abs(currentHeight - height) <= 50) return;
+
+          const targetHeight = (height + this.config.heightReserve) + 'px';
+          iframe.style.setProperty('height', targetHeight, 'important');
+
+          if (iframe.parentElement) {
+            iframe.parentElement.style.setProperty('height', targetHeight, 'important');
+          }
+        } catch (e) {
+          // Cross-origin iframe — silently ignore
         }
-
-        if (!iframe.contentWindow || !iframe.contentWindow.document) {
-          this.logger.debug('EditorLayoutManager', 'Iframe content not accessible');
-          return;
-        }
-
-        const body = iframe.contentWindow.document.body;
-        const html = iframe.contentWindow.document.documentElement;
-
-        if (!body) {
-          this.logger.debug('EditorLayoutManager', 'Iframe body not ready');
-          return;
-        }
-
-        const height = Math.max(
-          body.scrollHeight, body.offsetHeight,
-          html.clientHeight, html.scrollHeight, html.offsetHeight
-        );
-
-        // Only resize if height changed significantly (avoids unnecessary reflows)
-        const currentHeight = parseInt(iframe.style.height || '0', 10);
-        if (Math.abs(currentHeight - height) <= 50) return;
-
-        const targetHeight = (height + this.config.heightReserve) + 'px';
-        iframe.style.setProperty('height', targetHeight, 'important');
-
-        if (iframe.parentElement) {
-          iframe.parentElement.style.setProperty('height', targetHeight, 'important');
-        }
-
-        this.logger.debug('EditorLayoutManager', `Iframe resized to ${height}px`);
       } catch (error) {
-        if (error.name === 'SecurityError') {
-          this.logger.warn('EditorLayoutManager',
-            'Cannot access iframe content (cross-origin)');
-        } else {
-          this.logger.error('EditorLayoutManager', 'Error resizing iframe', error);
-        }
+        this.logger.error('EditorLayoutManager', 'Error resizing iframe', error);
       }
     }
 
@@ -2774,7 +2746,7 @@
     }
 
     /**
-     * Called when iframe is found — starts resize interval
+     * Called when iframe is found — starts layout interval
      */
     onIframeFound() {
       if (this.resizeIntervalId) return;
@@ -2788,7 +2760,7 @@
           this.fixSidebar();
           this.resizeIframe();
         },
-        this.config.resizeInterval,
+        500,
         'Editor layout interval'
       );
     }
