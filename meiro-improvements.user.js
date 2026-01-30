@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.5
+// @version      1.3.6
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2569,6 +2569,8 @@
             position: sticky !important;
             top: 20px !important;
             z-index: 1000 !important;
+            width: 400px !important;
+            align-self: flex-start !important;
           }
 
           /* Unlock overflow on sidebar internal scrollable elements */
@@ -2635,18 +2637,18 @@
         sidebarContent.style.setProperty('position', 'sticky', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
         sidebarContent.style.setProperty('z-index', '1000', 'important');
+        // Always start at top of rail — never use flex-end (pushes content to bottom of rail)
+        sidebarContent.style.setProperty('align-self', 'flex-start', 'important');
 
-        // Smart sticky: if menu taller than viewport, stick to bottom; otherwise top
+        // Smart sticky: if menu taller than viewport, stick to bottom edge; otherwise top
         const winHeight = window.innerHeight;
         const menuHeight = sidebarContent.offsetHeight;
-        if (menuHeight > winHeight) {
+        if (menuHeight > (winHeight - 40)) {
           sidebarContent.style.setProperty('top', 'auto', 'important');
           sidebarContent.style.setProperty('bottom', '20px', 'important');
-          sidebarContent.style.setProperty('align-self', 'flex-end', 'important');
         } else {
           sidebarContent.style.setProperty('top', '20px', 'important');
           sidebarContent.style.setProperty('bottom', 'auto', 'important');
-          sidebarContent.style.setProperty('align-self', 'flex-start', 'important');
         }
 
         // 5. Fix internal scroll elements (.os-host has calc() height, .os-viewport has overflow-y: scroll)
