@@ -10,7 +10,7 @@ Production-ready Tampermonkey/Greasemonkey userscript that enhances the Meiro.io
 - **UI enhancements** - Responsive layout improvements and wider content areas
 - **Delete button focus** - Auto-focuses delete button in confirmation modals (press Enter to confirm)
 - **Autosave** - Automatic saving in campaign editor with configurable interval (90s default), toggle switch and countdown timer
-- **Editor Layout** - Removes inner scrolling from campaign/template editor, expands iframe to match content height
+- **Editor Layout** - Removes inner scrolling from campaign/template editor, expands iframe to match content height, sticky sidebar for element panel
 
 ## Installation
 
@@ -69,7 +69,8 @@ const CONFIG = {
 - Removes inner scrolling from the campaign/template editor
 - CSS overrides eliminate nested scroll containers
 - Dynamically resizes editor iframe to match content height
-- Polls every 1 second for iframe height changes
+- Sticky sidebar keeps element panel visible while scrolling long templates
+- Polls every 1 second for iframe height and sidebar state
 - Works on both `/campaigns/` and `/templates/` pages
 
 ### UI improvements

@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.0
+// @version      1.3.1
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2563,11 +2563,51 @@
             height: auto !important;
             overflow: visible !important;
           }
+
+          /* Sidebar sticky positioning */
+          aside.arco-layout-sider .arco-layout-sider-children {
+            position: sticky !important;
+            top: 20px !important;
+            z-index: 1000 !important;
+          }
+
+          /* Unlock overflow on sidebar internal scrollable elements */
+          aside.arco-layout-sider .arco-layout-sider-children .os-host,
+          aside.arco-layout-sider .arco-layout-sider-children .os-viewport,
+          aside.arco-layout-sider .arco-layout-sider-children .os-padding,
+          aside.arco-layout-sider .arco-layout-sider-children .os-content {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
         `;
         document.head.appendChild(this.styleElement);
         this.logger.info('EditorLayoutManager', 'CSS overrides injected');
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error injecting styles', error);
+      }
+    }
+
+    /**
+     * Fix sidebar parent overflow to enable sticky positioning
+     */
+    fixSidebar() {
+      try {
+        const sidebar = document.querySelector('aside.arco-layout-sider');
+        if (!sidebar) return;
+
+        // Walk up parent chain and unlock overflow (required for sticky)
+        let parent = sidebar.parentElement;
+        while (parent && parent.tagName !== 'BODY') {
+          const style = window.getComputedStyle(parent);
+          if (style.overflow !== 'visible' || parent.classList.contains('arco-card-body')) {
+            parent.style.setProperty('overflow', 'visible', 'important');
+            parent.style.setProperty('height', 'auto', 'important');
+          }
+          parent = parent.parentElement;
+        }
+      } catch (error) {
+        this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
       }
     }
 
@@ -2680,14 +2720,18 @@
      */
     onIframeFound() {
       if (this.resizeIntervalId) return;
-      this.logger.info('EditorLayoutManager', 'Iframe found, starting resize interval');
+      this.logger.info('EditorLayoutManager', 'Iframe found, starting layout interval');
 
+      this.fixSidebar();
       this.resizeIframe();
 
       this.resizeIntervalId = this.resourceManager.registerInterval(
-        () => this.resizeIframe(),
+        () => {
+          this.fixSidebar();
+          this.resizeIframe();
+        },
         this.config.resizeInterval,
-        'Editor layout iframe resize'
+        'Editor layout interval'
       );
     }
 
@@ -3057,7 +3101,7 @@
     // Expose app instance globally for debugging
     window.MeiroBetterWorkflow = {
       app: app,
-      version: "1.3.0",
+      version: "1.3.1",
       config: CONFIG,
     };
   } catch (error) {
