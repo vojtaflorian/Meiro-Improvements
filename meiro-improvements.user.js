@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.4.1
+// @version      1.4.2
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2573,25 +2573,9 @@
           }
 
           .block-list-grid-item {
-            max-width: 100% !important;
-            min-width: 0 !important;
-          }
-
-          .block-list-grid-item .blockItemContainer {
-            padding: 4px !important;
-          }
-
-          .block-list-grid-item .block-list-grid-item-icon {
-            font-size: 28px !important;
-          }
-
-          .block-list-grid-item .blockItemContainer img {
-            max-height: 2.5rem !important;
-            max-width: 2.5rem !important;
-          }
-
-          .arco-collapse-item-content-box {
-            padding: 10px !important;
+            width: calc(var(--block-grid-item-size) + 5px) !important;
+            height: calc(var(--block-grid-item-size) + 5px) !important;
+            margin-bottom: 0 !important;
           }
         `;
         document.head.appendChild(this.styleElement);
@@ -3132,7 +3116,7 @@
     // Expose app instance globally for debugging
     window.MeiroBetterWorkflow = {
       app: app,
-      version: "1.4.1",
+      version: "1.4.2",
       config: CONFIG,
     };
   } catch (error) {
