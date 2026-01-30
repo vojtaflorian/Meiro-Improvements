@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.8
+// @version      1.3.9
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2600,7 +2600,11 @@
         sidebarContent.style.removeProperty('max-height');
         sidebarContent.style.removeProperty('overflow-y');
 
-        // 3. Apply sticky positioning
+        // 3. Shrink sidebarContent to natural height (creates sticky rail)
+        // Without this, sidebarContent inherits height:100% from aside (7749=7749, rail=0)
+        sidebarContent.style.setProperty('height', 'auto', 'important');
+
+        // 4. Apply sticky positioning
         sidebarContent.style.setProperty('position', 'sticky', 'important');
         sidebarContent.style.setProperty('top', '20px', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
@@ -3099,7 +3103,7 @@
     // Expose app instance globally for debugging
     window.MeiroBetterWorkflow = {
       app: app,
-      version: "1.3.3",
+      version: "1.3.9",
       config: CONFIG,
     };
   } catch (error) {
