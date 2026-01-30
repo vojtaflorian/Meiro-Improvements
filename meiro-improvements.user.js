@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.2
+// @version      1.3.3
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2611,17 +2611,27 @@
           parent = parent.parentElement;
         }
 
-        // 2. Remove conflicting inline styles set by the application
+        // 2. Stretch aside to match sibling height (sticky needs parent taller than child)
+        sidebar.style.setProperty('height', 'auto', 'important');
+        sidebar.style.setProperty('align-self', 'stretch', 'important');
+
+        // Also stretch the flex parent (section.arco-layout) so aside can grow
+        const layoutSection = sidebar.closest('section.arco-layout');
+        if (layoutSection) {
+          layoutSection.style.setProperty('align-items', 'stretch', 'important');
+        }
+
+        // 3. Remove conflicting inline styles set by the application
         sidebarContent.style.removeProperty('max-height');
         sidebarContent.style.removeProperty('overflow-y');
 
-        // 3. Apply sticky positioning via inline styles (overrides everything)
+        // 4. Apply sticky positioning via inline styles (overrides everything)
         sidebarContent.style.setProperty('position', 'sticky', 'important');
         sidebarContent.style.setProperty('top', '20px', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
         sidebarContent.style.setProperty('z-index', '1000', 'important');
 
-        // 4. Fix internal scroll elements (.os-host has calc() height, .os-viewport has overflow-y: scroll)
+        // 5. Fix internal scroll elements (.os-host has calc() height, .os-viewport has overflow-y: scroll)
         const internals = sidebarContent.querySelectorAll(
           '.os-host, .os-viewport, .os-padding, .os-content'
         );
@@ -3129,7 +3139,7 @@
     // Expose app instance globally for debugging
     window.MeiroBetterWorkflow = {
       app: app,
-      version: "1.3.2",
+      version: "1.3.3",
       config: CONFIG,
     };
   } catch (error) {
