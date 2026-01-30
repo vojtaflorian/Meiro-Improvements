@@ -70,6 +70,7 @@ const CONFIG = {
 - CSS overrides eliminate nested scroll containers
 - Dynamically resizes editor iframe to match content height
 - Sticky sidebar keeps element panel visible while scrolling long templates
+- Compact block grid (4 columns) for shorter sidebar panel
 - Polls every 1 second for iframe height and sidebar state
 - Works on both `/campaigns/` and `/templates/` pages
 
