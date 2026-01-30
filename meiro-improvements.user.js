@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.7
+// @version      1.3.8
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2545,37 +2545,23 @@
       try {
         this.styleElement = document.createElement('style');
         this.styleElement.textContent = `
-          /* 1. Unlock containers (enable page-level scroll) */
-          .wzW5j section.arco-layout,
-          .wzW5j section.arco-layout > aside + div,
-          .easy-email-pro-editor-tabs + div,
+          /* Unlock container heights (enable page-level scroll) */
+          .wzW5j section.arco-layout {
+            height: auto !important;
+            min-height: ${this.config.minHeight}px !important;
+          }
+
+          .wzW5j section.arco-layout > aside + div {
+            height: auto !important;
+            flex: 1 1 auto !important;
+          }
+
+          .easy-email-pro-editor-tabs + div {
+            height: auto !important;
+          }
+
           .easy-email-pro-editor-tabs + div > div {
             height: auto !important;
-            min-height: 100vh !important;
-            overflow: visible !important;
-          }
-
-          /* 2. Sidebar rail reset */
-          aside.arco-layout-sider {
-            height: auto !important;
-            align-self: flex-start !important;
-          }
-
-          /* 3. Sticky content (the "wagon" riding the rail) */
-          aside.arco-layout-sider .arco-layout-sider-children {
-            position: sticky !important;
-            width: 400px !important;
-            z-index: 1000 !important;
-            align-self: flex-start !important;
-          }
-
-          /* 4. Kill OverlayScrollbars inner scroll */
-          aside.arco-layout-sider .arco-layout-sider-children .os-host,
-          aside.arco-layout-sider .arco-layout-sider-children .os-viewport,
-          aside.arco-layout-sider .arco-layout-sider-children .os-padding,
-          aside.arco-layout-sider .arco-layout-sider-children .os-content {
-            height: auto !important;
-            max-height: none !important;
             overflow: visible !important;
           }
         `;
@@ -2587,8 +2573,9 @@
     }
 
     /**
-     * Fix sidebar for sticky positioning by unlocking parent overflow,
-     * syncing height to editor, and applying smart sticky logic
+     * Fix sidebar for sticky positioning — exact replica of working console script.
+     * Only unlocks parent overflow + sets sticky on sidebarContent. No height sync,
+     * no align-self, no smart sticky — those additions broke the behavior.
      */
     fixSidebar() {
       try {
@@ -2596,9 +2583,7 @@
         const sidebarContent = document.querySelector(
           'aside.arco-layout-sider .arco-layout-sider-children'
         );
-        const editorWrapper = document.querySelector('.wzW5j section.arco-layout > aside + div');
-
-        if (!sidebar || !sidebarContent || !editorWrapper) return;
+        if (!sidebar || !sidebarContent) return;
 
         // 1. Unlock overflow on all parents (required for sticky)
         let parent = sidebar.parentElement;
@@ -2607,45 +2592,28 @@
           if (style.overflow !== 'visible' || parent.classList.contains('arco-card-body')) {
             parent.style.setProperty('overflow', 'visible', 'important');
             parent.style.setProperty('height', 'auto', 'important');
-            parent.style.setProperty('min-height', '100vh', 'important');
           }
           parent = parent.parentElement;
         }
 
-        // 2. Sync sidebar height to editor (creates the "rail" for sticky travel)
-        const rightHeight = editorWrapper.offsetHeight;
-        if (rightHeight > 0) {
-          sidebar.style.setProperty('min-height', rightHeight + 'px', 'important');
-          sidebar.style.setProperty('height', '100%', 'important');
-        }
+        // 2. Remove conflicting inline styles set by the application
+        sidebarContent.style.removeProperty('max-height');
+        sidebarContent.style.removeProperty('overflow-y');
 
         // 3. Apply sticky positioning
         sidebarContent.style.setProperty('position', 'sticky', 'important');
+        sidebarContent.style.setProperty('top', '20px', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
         sidebarContent.style.setProperty('z-index', '1000', 'important');
-        sidebarContent.style.setProperty('align-self', 'flex-start', 'important');
 
-        // Smart sticky: tall menu sticks to bottom edge, short menu sticks to top
-        const winHeight = window.innerHeight;
-        const menuHeight = sidebarContent.offsetHeight;
-        if (menuHeight > (winHeight - 40)) {
-          sidebarContent.style.setProperty('top', 'auto', 'important');
-          sidebarContent.style.setProperty('bottom', '20px', 'important');
-        } else {
-          sidebarContent.style.setProperty('top', '20px', 'important');
-          sidebarContent.style.setProperty('bottom', 'auto', 'important');
-        }
-
-        // 4. Force unlock internal scroll elements
+        // 4. Force unlock internal scroll elements (.os-host has calc() heights)
         const internals = sidebarContent.querySelectorAll(
           '.os-host, .os-viewport, .os-padding, .os-content'
         );
         internals.forEach(el => {
-          if (el.style.overflow !== 'visible') {
-            el.style.setProperty('height', 'auto', 'important');
-            el.style.setProperty('max-height', 'none', 'important');
-            el.style.setProperty('overflow', 'visible', 'important');
-          }
+          el.style.setProperty('height', 'auto', 'important');
+          el.style.setProperty('max-height', 'none', 'important');
+          el.style.setProperty('overflow', 'visible', 'important');
         });
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
