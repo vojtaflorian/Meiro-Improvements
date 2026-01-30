@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.4.2
+// @version      1.5.0
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2556,27 +2556,16 @@
             flex: 1 1 auto !important;
           }
 
-          .easy-email-pro-editor-tabs + div {
+          /* Unlock only the main content area, NOT the sidebar */
+          .wzW5j section.arco-layout > aside + div .easy-email-pro-editor-tabs + div {
             height: auto !important;
           }
 
-          .easy-email-pro-editor-tabs + div > div {
+          .wzW5j section.arco-layout > aside + div .easy-email-pro-editor-tabs + div > div {
             height: auto !important;
             overflow: visible !important;
           }
 
-          /* Compact sidebar block grid: 4 columns instead of 3 */
-          .block-list-grid {
-            grid-template-columns: repeat(4, 1fr) !important;
-            column-gap: 2px !important;
-            row-gap: 2px !important;
-          }
-
-          .block-list-grid-item {
-            width: calc(var(--block-grid-item-size) + 5px) !important;
-            height: calc(var(--block-grid-item-size) + 5px) !important;
-            margin-bottom: 0 !important;
-          }
         `;
         document.head.appendChild(this.styleElement);
         this.logger.info('EditorLayoutManager', 'CSS overrides injected');
@@ -2586,9 +2575,9 @@
     }
 
     /**
-     * Fix sidebar for sticky positioning — exact replica of working console script.
-     * Only unlocks parent overflow + sets sticky on sidebarContent. No height sync,
-     * no align-self, no smart sticky — those additions broke the behavior.
+     * Fix sidebar for sticky positioning with internal scroll.
+     * Unlocks parent overflow for sticky, caps height to viewport,
+     * and enables overflow-y so sidebar content is scrollable independently.
      */
     fixSidebar() {
       try {
@@ -2609,29 +2598,15 @@
           parent = parent.parentElement;
         }
 
-        // 2. Remove conflicting inline styles set by the application
-        sidebarContent.style.removeProperty('max-height');
-        sidebarContent.style.removeProperty('overflow-y');
+        // 2. Cap sidebar height to viewport and enable internal scroll
+        sidebarContent.style.setProperty('max-height', 'calc(100vh - 40px)', 'important');
+        sidebarContent.style.setProperty('overflow-y', 'auto', 'important');
 
-        // 3. Shrink sidebarContent to natural height (creates sticky rail)
-        // Without this, sidebarContent inherits height:100% from aside (7749=7749, rail=0)
-        sidebarContent.style.setProperty('height', 'auto', 'important');
-
-        // 4. Apply sticky positioning
+        // 3. Apply sticky positioning
         sidebarContent.style.setProperty('position', 'sticky', 'important');
         sidebarContent.style.setProperty('top', '20px', 'important');
         sidebarContent.style.setProperty('width', '400px', 'important');
         sidebarContent.style.setProperty('z-index', '1000', 'important');
-
-        // 4. Force unlock internal scroll elements (.os-host has calc() heights)
-        const internals = sidebarContent.querySelectorAll(
-          '.os-host, .os-viewport, .os-padding, .os-content'
-        );
-        internals.forEach(el => {
-          el.style.setProperty('height', 'auto', 'important');
-          el.style.setProperty('max-height', 'none', 'important');
-          el.style.setProperty('overflow', 'visible', 'important');
-        });
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
       }
