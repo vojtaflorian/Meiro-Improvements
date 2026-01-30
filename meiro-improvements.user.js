@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.3
+// @version      1.3.4
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2611,15 +2611,9 @@
           parent = parent.parentElement;
         }
 
-        // 2. Stretch aside to match sibling height (sticky needs parent taller than child)
+        // 2. Let aside take only its natural height so sticky child can scroll within parent
         sidebar.style.setProperty('height', 'auto', 'important');
-        sidebar.style.setProperty('align-self', 'stretch', 'important');
-
-        // Also stretch the flex parent (section.arco-layout) so aside can grow
-        const layoutSection = sidebar.closest('section.arco-layout');
-        if (layoutSection) {
-          layoutSection.style.setProperty('align-items', 'stretch', 'important');
-        }
+        sidebar.style.setProperty('align-self', 'flex-start', 'important');
 
         // 3. Remove conflicting inline styles set by the application
         sidebarContent.style.removeProperty('max-height');
