@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.3.1
+// @version      1.3.2
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -94,7 +94,7 @@
       ],
       resizeInterval: 1000,
       iframeId: "easy-email-pro-iframe",
-      heightReserve: 50,
+      heightReserve: 150,
       minHeight: 800,
     },
 
@@ -2589,14 +2589,18 @@
     }
 
     /**
-     * Fix sidebar parent overflow to enable sticky positioning
+     * Fix sidebar for sticky positioning by unlocking parent overflow,
+     * removing conflicting inline styles, and fixing internal scroll elements
      */
     fixSidebar() {
       try {
         const sidebar = document.querySelector('aside.arco-layout-sider');
-        if (!sidebar) return;
+        const sidebarContent = document.querySelector(
+          'aside.arco-layout-sider .arco-layout-sider-children'
+        );
+        if (!sidebar || !sidebarContent) return;
 
-        // Walk up parent chain and unlock overflow (required for sticky)
+        // 1. Walk up parent chain and unlock overflow (required for sticky)
         let parent = sidebar.parentElement;
         while (parent && parent.tagName !== 'BODY') {
           const style = window.getComputedStyle(parent);
@@ -2606,6 +2610,26 @@
           }
           parent = parent.parentElement;
         }
+
+        // 2. Remove conflicting inline styles set by the application
+        sidebarContent.style.removeProperty('max-height');
+        sidebarContent.style.removeProperty('overflow-y');
+
+        // 3. Apply sticky positioning via inline styles (overrides everything)
+        sidebarContent.style.setProperty('position', 'sticky', 'important');
+        sidebarContent.style.setProperty('top', '20px', 'important');
+        sidebarContent.style.setProperty('width', '400px', 'important');
+        sidebarContent.style.setProperty('z-index', '1000', 'important');
+
+        // 4. Fix internal scroll elements (.os-host has calc() height, .os-viewport has overflow-y: scroll)
+        const internals = sidebarContent.querySelectorAll(
+          '.os-host, .os-viewport, .os-padding, .os-content'
+        );
+        internals.forEach(el => {
+          el.style.setProperty('height', 'auto', 'important');
+          el.style.setProperty('max-height', 'none', 'important');
+          el.style.setProperty('overflow', 'visible', 'important');
+        });
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
       }
@@ -2640,11 +2664,15 @@
           html.clientHeight, html.scrollHeight, html.offsetHeight
         );
 
+        // Only resize if height changed significantly (avoids unnecessary reflows)
+        const currentHeight = parseInt(iframe.style.height || '0', 10);
+        if (Math.abs(currentHeight - height) <= 50) return;
+
         const targetHeight = (height + this.config.heightReserve) + 'px';
-        iframe.style.height = targetHeight;
+        iframe.style.setProperty('height', targetHeight, 'important');
 
         if (iframe.parentElement) {
-          iframe.parentElement.style.height = targetHeight;
+          iframe.parentElement.style.setProperty('height', targetHeight, 'important');
         }
 
         this.logger.debug('EditorLayoutManager', `Iframe resized to ${height}px`);
@@ -3101,7 +3129,7 @@
     // Expose app instance globally for debugging
     window.MeiroBetterWorkflow = {
       app: app,
-      version: "1.3.1",
+      version: "1.3.2",
       config: CONFIG,
     };
   } catch (error) {
