@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.6.0
+// @version      1.7.0
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2545,14 +2545,28 @@
       try {
         this.styleElement = document.createElement('style');
         this.styleElement.textContent = `
-          /* Editor column: scroll internally instead of expanding the page.
-             Native layout has section+card-body overflow:hidden at 744px —
-             we preserve that and only add scroll on the editor column itself. */
-          .wzW5j section.arco-layout > aside + div {
-            overflow-y: auto !important;
+          /* Unlock section + card-body so expanded iframe grows the page.
+             Without this, overflow:hidden at 744px clips the editor. */
+          .wzW5j .arco-card-body,
+          .wzW5j section.arco-layout {
+            overflow: visible !important;
+            height: auto !important;
           }
 
-          /* Lock sidebar tab header (Element / Style / Layer) at top while sidebar scrolls */
+          /* Sidebar: sticky in viewport while user scrolls through the email.
+             align-self:flex-start prevents flex stretch to container height,
+             which is required for position:sticky to work in a flex row. */
+          aside.arco-layout-sider {
+            position: sticky !important;
+            top: 0 !important;
+            align-self: flex-start !important;
+            max-height: 100vh !important;
+            overflow-y: auto !important;
+            z-index: 10 !important;
+          }
+
+          /* Lock sidebar tab header (Element / Style / Layer) at top
+             while sidebar content scrolls internally */
           aside.arco-layout-sider .arco-tabs-header-nav {
             position: sticky !important;
             top: 0 !important;
@@ -2610,15 +2624,14 @@
           const targetHeight = (height + this.config.heightReserve) + 'px';
           iframe.style.setProperty('height', targetHeight, 'important');
 
-          // Unlock containers between iframe and editor column so iframe
-          // can grow. Editor column has overflow-y:auto (from injectStyles)
-          // so the expanded content scrolls inside it, not on the page.
-          if (iframe.parentElement) {
-            iframe.parentElement.style.setProperty('height', 'auto', 'important');
-            iframe.parentElement.style.setProperty('overflow', 'visible', 'important');
-          }
-          if (iframe.parentElement?.parentElement) {
-            iframe.parentElement.parentElement.style.setProperty('height', 'auto', 'important');
+          // Unlock ALL containers between iframe and section.arco-layout
+          // so the expanded iframe grows the page. Section + card-body
+          // overflow is handled by injectStyles() CSS overrides.
+          let container = iframe.parentElement;
+          while (container && !container.matches('section.arco-layout')) {
+            container.style.setProperty('height', 'auto', 'important');
+            container.style.setProperty('overflow', 'visible', 'important');
+            container = container.parentElement;
           }
         } catch (e) {
           // Cross-origin iframe — silently ignore
