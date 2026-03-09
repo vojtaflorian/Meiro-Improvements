@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.5.4
+// @version      1.6.0
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2545,40 +2545,20 @@
       try {
         this.styleElement = document.createElement('style');
         this.styleElement.textContent = `
-          /* ===== STICKY FORM: pin editor to viewport top on scroll ===== */
-          form.arco-form {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 100 !important;
-          }
-
-          /* Unlock internal containers (Arco sets overflow:hidden) so columns can scroll */
-          form.arco-form .arco-card-body,
-          form.arco-form section.arco-layout {
-            overflow: visible !important;
-          }
-
-          /* ===== SIDEBAR: cap to viewport, scroll internally ===== */
-          aside.arco-layout-sider .arco-layout-sider-children {
-            max-height: 100vh !important;
+          /* Editor column: scroll internally instead of expanding the page.
+             Native layout has section+card-body overflow:hidden at 744px —
+             we preserve that and only add scroll on the editor column itself. */
+          .wzW5j section.arco-layout > aside + div {
             overflow-y: auto !important;
           }
 
-          /* Lock sidebar tab header (Element / Style / Layer) at top while content scrolls */
+          /* Lock sidebar tab header (Element / Style / Layer) at top while sidebar scrolls */
           aside.arco-layout-sider .arco-tabs-header-nav {
             position: sticky !important;
             top: 0 !important;
             z-index: 10 !important;
             background-color: var(--color-bg-2, #fff) !important;
           }
-
-          /* ===== EDITOR COLUMN: cap to viewport, scroll internally ===== */
-          .wzW5j section.arco-layout > aside + div {
-            max-height: 100vh !important;
-            overflow-y: auto !important;
-            flex: 1 1 auto !important;
-          }
-
         `;
         document.head.appendChild(this.styleElement);
         this.logger.info('EditorLayoutManager', 'CSS overrides injected');
@@ -2588,26 +2568,12 @@
     }
 
     /**
-     * Fix layout for sticky form.
-     * Unlocks overflow on ancestors ABOVE the form (required for form's sticky to work).
-     * Preserves sidebar width that Arco framework may reset.
+     * Preserve sidebar width that Arco framework may reset on re-render.
+     * NOTE: We intentionally do NOT modify parent overflow/height —
+     * the native layout handles sticky/scroll via constrained containers.
      */
     fixSidebar() {
       try {
-        const form = document.querySelector('form.arco-form');
-        if (!form) return;
-
-        // 1. Unlock overflow on ancestors ABOVE the form (required for sticky)
-        let parent = form.parentElement;
-        while (parent && parent.tagName !== 'BODY') {
-          const style = window.getComputedStyle(parent);
-          if (style.overflow !== 'visible') {
-            parent.style.setProperty('overflow', 'visible', 'important');
-          }
-          parent = parent.parentElement;
-        }
-
-        // 2. Preserve sidebar width (Arco can reset it on re-render)
         const sidebarContent = document.querySelector(
           'aside.arco-layout-sider .arco-layout-sider-children'
         );
@@ -2644,8 +2610,15 @@
           const targetHeight = (height + this.config.heightReserve) + 'px';
           iframe.style.setProperty('height', targetHeight, 'important');
 
+          // Unlock containers between iframe and editor column so iframe
+          // can grow. Editor column has overflow-y:auto (from injectStyles)
+          // so the expanded content scrolls inside it, not on the page.
           if (iframe.parentElement) {
-            iframe.parentElement.style.setProperty('height', targetHeight, 'important');
+            iframe.parentElement.style.setProperty('height', 'auto', 'important');
+            iframe.parentElement.style.setProperty('overflow', 'visible', 'important');
+          }
+          if (iframe.parentElement?.parentElement) {
+            iframe.parentElement.parentElement.style.setProperty('height', 'auto', 'important');
           }
         } catch (e) {
           // Cross-origin iframe — silently ignore
