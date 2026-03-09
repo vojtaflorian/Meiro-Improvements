@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.5.3
+// @version      1.5.4
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2550,6 +2550,12 @@
             position: sticky !important;
             top: 0 !important;
             z-index: 100 !important;
+          }
+
+          /* Unlock internal containers (Arco sets overflow:hidden) so columns can scroll */
+          form.arco-form .arco-card-body,
+          form.arco-form section.arco-layout {
+            overflow: visible !important;
           }
 
           /* ===== SIDEBAR: cap to viewport, scroll internally ===== */
