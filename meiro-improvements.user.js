@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.5.0
+// @version      1.5.3
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -23,7 +23,7 @@
   const CONFIG = {
     // Logging configuration
     logging: {
-      enabled: true,
+      enabled: false,
       level: "INFO", // DEBUG, INFO, WARN, ERROR
       prefix: "🔧 Meiro Better WF",
       includeTimestamp: true,
@@ -2545,25 +2545,32 @@
       try {
         this.styleElement = document.createElement('style');
         this.styleElement.textContent = `
-          /* Unlock container heights (enable page-level scroll) */
-          .wzW5j section.arco-layout {
-            height: auto !important;
-            min-height: ${this.config.minHeight}px !important;
+          /* ===== STICKY FORM: pin editor to viewport top on scroll ===== */
+          form.arco-form {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 100 !important;
           }
 
+          /* ===== SIDEBAR: cap to viewport, scroll internally ===== */
+          aside.arco-layout-sider .arco-layout-sider-children {
+            max-height: 100vh !important;
+            overflow-y: auto !important;
+          }
+
+          /* Lock sidebar tab header (Element / Style / Layer) at top while content scrolls */
+          aside.arco-layout-sider .arco-tabs-header-nav {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background-color: var(--color-bg-2, #fff) !important;
+          }
+
+          /* ===== EDITOR COLUMN: cap to viewport, scroll internally ===== */
           .wzW5j section.arco-layout > aside + div {
-            height: auto !important;
+            max-height: 100vh !important;
+            overflow-y: auto !important;
             flex: 1 1 auto !important;
-          }
-
-          /* Unlock only the main content area, NOT the sidebar */
-          .wzW5j section.arco-layout > aside + div .easy-email-pro-editor-tabs + div {
-            height: auto !important;
-          }
-
-          .wzW5j section.arco-layout > aside + div .easy-email-pro-editor-tabs + div > div {
-            height: auto !important;
-            overflow: visible !important;
           }
 
         `;
@@ -2575,38 +2582,32 @@
     }
 
     /**
-     * Fix sidebar for sticky positioning with internal scroll.
-     * Unlocks parent overflow for sticky, caps height to viewport,
-     * and enables overflow-y so sidebar content is scrollable independently.
+     * Fix layout for sticky form.
+     * Unlocks overflow on ancestors ABOVE the form (required for form's sticky to work).
+     * Preserves sidebar width that Arco framework may reset.
      */
     fixSidebar() {
       try {
-        const sidebar = document.querySelector('aside.arco-layout-sider');
-        const sidebarContent = document.querySelector(
-          'aside.arco-layout-sider .arco-layout-sider-children'
-        );
-        if (!sidebar || !sidebarContent) return;
+        const form = document.querySelector('form.arco-form');
+        if (!form) return;
 
-        // 1. Unlock overflow on all parents (required for sticky)
-        let parent = sidebar.parentElement;
+        // 1. Unlock overflow on ancestors ABOVE the form (required for sticky)
+        let parent = form.parentElement;
         while (parent && parent.tagName !== 'BODY') {
           const style = window.getComputedStyle(parent);
-          if (style.overflow !== 'visible' || parent.classList.contains('arco-card-body')) {
+          if (style.overflow !== 'visible') {
             parent.style.setProperty('overflow', 'visible', 'important');
-            parent.style.setProperty('height', 'auto', 'important');
           }
           parent = parent.parentElement;
         }
 
-        // 2. Cap sidebar height to viewport and enable internal scroll
-        sidebarContent.style.setProperty('max-height', 'calc(100vh - 40px)', 'important');
-        sidebarContent.style.setProperty('overflow-y', 'auto', 'important');
-
-        // 3. Apply sticky positioning
-        sidebarContent.style.setProperty('position', 'sticky', 'important');
-        sidebarContent.style.setProperty('top', '20px', 'important');
-        sidebarContent.style.setProperty('width', '400px', 'important');
-        sidebarContent.style.setProperty('z-index', '1000', 'important');
+        // 2. Preserve sidebar width (Arco can reset it on re-render)
+        const sidebarContent = document.querySelector(
+          'aside.arco-layout-sider .arco-layout-sider-children'
+        );
+        if (sidebarContent) {
+          sidebarContent.style.setProperty('width', '400px', 'important');
+        }
       } catch (error) {
         this.logger.error('EditorLayoutManager', 'Error fixing sidebar', error);
       }
