@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Meiro Improvements
-// @version      1.7.0
+// @version      1.7.1
 // @description  Meiro Better Workflow - fixed sort button functionality
 // @author       Vojta Florian
 // @match        *.meiro.io/*
@@ -2568,6 +2568,15 @@
           /* Lock sidebar tab header (Element / Style / Layer) at top
              while sidebar content scrolls internally */
           aside.arco-layout-sider .arco-tabs-header-nav {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            background-color: var(--color-bg-2, #fff) !important;
+          }
+
+          /* Lock editor tabs bar (desktop/mobile, Page, preview buttons)
+             at the top of the editor column while scrolling through email */
+          .easy-email-pro-editor-tabs {
             position: sticky !important;
             top: 0 !important;
             z-index: 10 !important;
